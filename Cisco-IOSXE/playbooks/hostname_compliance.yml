@@ -22,14 +22,10 @@
           - show running-config | include hostname
       register: hostname_raw
 
-    - name: normalize hostname output
-      ansible.builtin.set_fact: 
-        observed_hostname: >-
-          {{
-            hostname_raw.stdout[0]
-            | regex_replace('^hostname\\s+', '')
-            | trim
-          }}
+    - name: Normalize hostname output
+      ansible.builtin.set_fact:
+          observed_hostname: "{{ hostname_raw.stdout[0].split()[1] }}"
+          
     - name: Compare expected and observed hostname
       ansible.builtin.set_fact:
         hostname_status: >-
@@ -63,7 +59,7 @@
               'None'
               if hostname_status == 'PASS'
               else 
-              'Expected hostname'
+              'Expected hostname '
               ~ hostname_control.expected.hostname
               ~ ' but found '
               ~ observed_hostname
