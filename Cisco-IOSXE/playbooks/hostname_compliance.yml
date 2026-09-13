@@ -1,0 +1,83 @@
+---
+
+- name : IOS-XE Hostname Compliance check
+  hosts: cisco_iosxe
+  gather_facts: false
+
+  vars_files:
+    - ../controls/lab_baseline.yml
+
+  tasks:
+    - name: Load hostname compliance control
+      ansible.builtin.set_fact:
+        hostname_control: >-
+          {{ 
+            controls 
+            | selectattr('id', 'equalto', 'LAB-001') 
+            | first 
+          }}
+    - name: Collect configured hostname
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include hostname
+      register: hostname_raw
+
+    - name: normalize hostname output
+      ansible.builtin.set_fact: 
+        observed_hostname: >-
+          {{
+            hostname_raw.stdout[0]
+            | regex_replace('^hostname\\s+', '')
+            | trim
+          }}
+    - name: Compare expected and observed hostname
+      ansible.builtin.set_fact:
+        hostname_status: >-
+          {{
+            'PASS'
+            if observed_hostname == hostname_control.expected.hostname
+            else 'FAIL'
+          }}
+    - name: Display hostname compliance result
+      ansible.builtin.set_fact:
+        compliance_result: 
+          device: "{{ inventory_hostname }}"
+          vendor: "Cisco"
+          platform: "IOS-XE"
+
+          control_id: "{{ hostname_control.id }}"
+          control_name: "{{ hostname_control.name }}"
+          category: "{{ hostname_control.category }}"
+          severity: "{{ hostname_control.severity }}"
+
+          status: "{{ hostname_status }}"
+
+          expected_state: 
+            hostname: "{{ hostname_control.expected.hostname }}"
+
+          observed_state: 
+            hostname: "{{ observed_hostname }}"
+          
+          deviation: >-
+            {{
+              'None'
+              if hostname_status == 'PASS'
+              else 
+              'Expected hostname'
+              ~ hostname_control.expected.hostname
+              ~ ' but found '
+              ~ observed_hostname
+            }}
+          evidence:
+            - "{{hostname_raw.stdout[0]}}"
+          remediation_hint: >-
+            {{
+              'None - device is compliant'
+              if hostname_status == 'PASS'
+              else
+              'Configure hostname '
+              ~ hostname_control.expected.hostname
+            }}
+    - name: Display structired compliance result
+      ansible.builtin.debug:
+        var: compliance_result
