@@ -11,9 +11,29 @@
           - show version
           - show ip interface brief
           - show running-config
-          - show version
+          - show ip route
       register: device_output
 
-    - name: Display device output
+    - name: Display show version
       ansible.builtin.debug:
-        var: device_output.stdout
+        msg: |
+          ===== SHOW VERSION =====
+          {{ device_output.stdout[0] }}
+
+    - name: Display show ip interface brief
+      ansible.builtin.debug:
+        msg: |
+          ===== SHOW IP INTERFACE BRIEF =====
+          {{ device_output.stdout[1] }}
+
+    - name: Display show clock
+      ansible.builtin.debug:
+        msg: |
+          ===== SHOW RUNNING CONFIG =====
+          {{ device_output.stdout[2] }}
+
+    - name: Display show ip route
+      ansible.builtin.debug:
+        msg: |
+          ===== SHOW IP ROUTE =====
+          {{ device_output.stdout[3] }}
