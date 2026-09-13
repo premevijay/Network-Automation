@@ -1,0 +1,69 @@
+---
+
+- name: IOSXE-Compliance Check
+  hosts: cisco_iosxe
+  gather_facts: false
+
+  vars_files:
+    - "../controls/lab_baseline.yml"
+  
+  tasks:
+    - name: Initialize compliance results list
+      ansible.builtin.set_fact:
+        compliance_results: []
+    
+    - name: Evaluate hostname compliance
+      ansible.builtin.include_tasks:
+        file: "../tasks/hostname_compliance.yml"
+
+    - name: Evaluate NTP compliance
+      ansible.builtin.include_tasks:
+        file: "../tasks/ntp_compliance.yml"
+    
+    - name: Calculate compliance counters
+      ansible.builtin.set.fact:
+        passed_controls: >-
+          {{
+            compliance_results
+            | selectattr('status', 'equalto', 'PASS')
+            | list
+            | length
+          }}
+        
+        failed_controls: >-
+          {{
+            compliance_results
+            | selectattr('status', 'equalto', 'FAIL')
+            | list
+            | length
+          }}
+
+    - name: calculate compliance percentage
+      ansible.builtin.set_fact:
+        compliance_percentage: >-
+          {{
+            (
+              (passed_controls | int) * 100.0 /
+              ((passed_controls | int) + (failed_controls | int))
+            ) | round(2)
+            if ((passed_controls | int) + (failed_controls | int)) > 0
+            else 0
+            }}
+    - name: Build Device compliance summary 
+      ansible.builtin.set.fact:
+        device_summary:
+          device: "{{ inventory_hostname }}"
+          vendor: "Cisco"
+          platform: "IOS-XE"
+          
+          controls_total: "{{ compliance_results | length }}"
+          passed: "{{passed_controls}}"
+          failed: "{{failed_controls}}"
+
+          compliance_percentage: "{{compliance_percentage}}"
+
+          results: "{{compliance_results}}"
+
+    - name: Display Device compliance summary
+      ansible.builtin.debug:
+        var: device_summary

@@ -1,0 +1,74 @@
+---
+
+- name: Load hostname compliance control
+  ansible.builtin.set_fact:
+    hostname_control: >-
+      {{ 
+        controls 
+        | selectattr('id', 'equalto', 'LAB-001') 
+        | first 
+      }}
+
+- name: Collect configured hostname
+  cisco.ios.ios_command:
+    commands:
+      - show running-config | include hostname
+  register: hostname_raw
+
+- name: Normalize hostname output
+  ansible.builtin.set_fact:
+      observed_hostname: "{{ hostname_raw.stdout[0].split()[1] }}"
+
+- name: Determine hostname compliance status
+  ansible.builtin.set_fact:
+    hostname_status: >-
+      {{
+        'PASS'
+        if observed_hostname == hostname_control.expected.hostname
+        else 'FAIL'
+      }}
+
+- name: Build hostname compliance result
+  ansible.builtin.set_fact:
+    compliance_result: 
+      device: "{{ inventory_hostname }}"
+      vendor: "Cisco"
+      platform: "IOS-XE"
+
+      control_id: "{{ hostname_control.id }}"
+      control_name: "{{ hostname_control.name }}"
+      category: "{{ hostname_control.category }}"
+      severity: "{{ hostname_control.severity }}"
+
+      status: "{{ hostname_status }}"
+
+      expected_state: 
+        hostname: "{{ hostname_control.expected.hostname }}"
+
+      observed_state: 
+        hostname: "{{ observed_hostname }}"
+      
+      deviation: >-
+        {{
+          'None'
+          if hostname_status == 'PASS'
+          else 
+          'Expected hostname '
+          ~ hostname_control.expected.hostname
+          ~ ' but found '
+          ~ observed_hostname
+        }}
+      evidence:
+        - "{{hostname_raw.stdout[0]}}"
+      
+      remediation_hint: >-
+        {{
+          'None - Device is compliant
+          if hostname_status == 'PASS'
+          else 
+          'configure hostname '
+          ~ hostname_control.expected.hostname
+        }}
+- name: Add hostname result to compliance results
+  ansible.builtin.set_fact:
+    compliance_results: "{{ compliance_results + [current_control_result] }}"
