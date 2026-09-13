@@ -22,29 +22,38 @@
           - show running-config | include ntp server
       register: ntp_raw
 
-    - name: Normalize NTP output
+    - name: Initialize observed NTP server list
       ansible.builtin.set_fact:
-        observed_ntp_servers: >-
-          {{
-            ntp_raw.stdout_lines[0]
-            | map('regex_replace', '^ntp server\\s+', '')
-            | map('regex_replace', '\\s+.*$', '')
-            | unique
-            | sort
-            | list
-          }}
+        observed_ntp_servers: []
 
+    - name: Extract NTP server IP addresses
+      ansible.builtin.set_fact:
+        observed_ntp_servers: "{{ observed_ntp_servers + [item.split()[2]] }}"
+      loop: "{{ ntp_raw.stdout_lines[0] }}"
+      
     - name: Set expected NTP servers
       ansible.builtin.set_fact:
         expected_ntp_servers: "{{ ntp_control.expected.servers | unique | sort | list }}"
 
     - name: Calculate missing NTP servers
       ansible.builtin.set_fact:
-        missing_ntp_servers: "{{ expected_ntp_servers | difference(observed_ntp_servers) | sort | list }}"
+        missing_ntp_servers:  >-
+          {{
+            expected_ntp_servers
+            | difference(observed_ntp_servers)
+            | sort
+            | list
+          }}
 
     - name: Calculate unexpected NTP servers
       ansible.builtin.set_fact:
-        unexpected_ntp_servers: "{{ observed_ntp_servers | difference(expected_ntp_servers) | sort | list }}"
+        unexpected_ntp_servers: >-
+          {{
+            observed_ntp_servers
+            | difference(expected_ntp_servers)
+            | sort
+            | list
+          }}
 
     - name: Display NTP comparison
       ansible.builtin.debug:
