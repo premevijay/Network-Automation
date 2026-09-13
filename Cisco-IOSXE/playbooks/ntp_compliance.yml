@@ -33,38 +33,39 @@
             | sort
             | list
           }}
+
     - name: Set expected NTP servers
       ansible.builtin.set_fact:
-          expected_ntp_servers: "{{ ntp_control.expected.servers | sort | list }}"
+        expected_ntp_servers: "{{ ntp_control.expected.servers | unique | sort | list }}"
 
-    - name: Calculate NTP deviations
+    - name: Calculate missing NTP servers
       ansible.builtin.set_fact:
-        ntp_deviation: >-
-          {{
-            expected_ntp_servers
-            | difference(observed_ntp_servers)
-            | sort
-            | list
-          }}
-        unexpected_ntp_servers: >-
-          {{
-            observed_ntp_servers
-            | difference(expected_ntp_servers)
-            | sort
-            | list
-          }}
+        missing_ntp_servers: "{{ expected_ntp_servers | difference(observed_ntp_servers) | sort | list }}"
+
+    - name: Calculate unexpected NTP servers
+      ansible.builtin.set_fact:
+        unexpected_ntp_servers: "{{ observed_ntp_servers | difference(expected_ntp_servers) | sort | list }}"
+
+    - name: Display NTP comparison
+      ansible.builtin.debug:
+        msg:
+          - "Expected: {{ expected_ntp_servers }}"
+          - "Observed: {{ observed_ntp_servers }}"
+          - "Missing: {{ missing_ntp_servers }}"
+          - "Unexpected: {{ unexpected_ntp_servers }}"
+
     - name: Determine NTP Compliance status
       ansible.builtin.set_fact:
         ntp_status: >-
           {{
             'PASS'
-            if 
-            (missing_ntp_servers | length == 0) 
-            and 
+            if
+            (missing_ntp_servers | length == 0)
+            and
             (unexpected_ntp_servers | length == 0)
-            else 
+            else
             'FAIL'
-          }}  
+          }}
     - name: Build NTP remediation message
       ansible.builtin.set_fact:
         ntp_remediation: >-
