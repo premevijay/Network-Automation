@@ -21,7 +21,7 @@
         file: "../tasks/ntp_check.yml"
     
     - name: Calculate compliance counters
-      ansible.builtin.set.fact:
+      ansible.builtin.set_fact:
         passed_controls: >-
           {{
             compliance_results
