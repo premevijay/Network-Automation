@@ -1,0 +1,120 @@
+---
+
+- name: IOS-XE NTP Compliance Check
+  hosts: cisco_iosxe
+  gather_facts: false
+
+  vars_files:
+    - ../controls/lab_baseline.yml
+
+  tasks:
+    - name: Load NTP compliance control
+      ansible.builtin.set_fact:
+        ntp_control: >-
+          {{ 
+            controls 
+            | selectattr('id', 'equalto', 'LAB-002') 
+            | first 
+          }}
+    - name: Collect configured NTP servers
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include ntp server
+      register: ntp_raw
+
+    - name: Normalize NTP output
+      ansible.builtin.set_fact:
+        observed_ntp_servers: >-
+          {{
+            ntp_raw.stdout[0]
+            | regex_findall('(?m)^ntp server(?: vrf \\S+)?\\s+([0-9]{1,3}(?:\\.[0-9]{1,3}){3})\\b')
+            | unique
+            | sort
+            | list
+           }}
+    - name: Set expected NTP servers
+      ansible.builtin.set_fact:
+          expected_ntp_servers: "{{ ntp_control.expected.servers | sort | list }}"
+
+    - name: Calculate NTP deviations
+      ansible.builtin.set_fact:
+        ntp_deviation: >-
+          {{
+            expected_ntp_servers
+            | difference(observed_ntp_servers)
+            | sort
+            | list
+          }}
+        unexpected_ntp_servers: >-
+          {{
+            observed_ntp_servers
+            | difference(expected_ntp_servers)
+            | sort
+            | list
+          }}
+    - name: Determine NTP Compliance status
+      ansible.builtin.set_fact:
+        ntp_status: >-
+          {{
+            'PASS'
+            if 
+            (missing_ntp_servers | length == 0) and (unexpected_ntp_servers | length == 0)
+            else 'FAIL'
+          }}  
+    - name: Build NTP remediation message
+      ansible.builtin.set_fact:
+        ntp_remediation: >-
+          {%- if ntp_status == 'PASS' -%}
+          None
+          {%- else -%}
+          {%- if missing_ntp_servers | length > 0 -%}
+          Missing approved NTP Servers: {{ missing_ntp_servers | join(', ') }}. 
+          {%- endif -%}
+          {%- if unexpected_ntp_servers | length > 0 -%}
+          Unexpected NTP Servers: {{ unexpected_ntp_servers | join(', ') }}.
+          {%- endif -%}
+          {%- endif -%}
+    - name: Build NTP remediation message
+      ansible.builtin.set_fact:
+        ntp_remediation_hint: >-
+          {%- if ntp_status == 'PASS' -%}
+          None - device is compliant
+          {%- else -%}
+          {%- if missing_ntp_servers | length > 0 -%}
+          Configure missing approved NTP Servers: {{ missing_ntp_servers | join(', ') }}. 
+          {%- endif -%}
+          {%- if unexpected_ntp_servers | length > 0 -%}
+          Review and remove unexpected unauthorised NTP Server(s): {{ unexpected_ntp_servers | join(', ') }}
+          {%- endif -%}
+          {%- endif -%}
+    - name: Build structured NTP compliance result
+      ansible.builtin.set_fact:
+        compliance_result: 
+          device: "{{ inventory_hostname }}"
+          vendor: "Cisco"
+          platform: "IOS-XE"
+
+          control_id: "{{ ntp_control.id }}"
+          control_name: "{{ ntp_control.name }}"
+          category: "{{ ntp_control.category }}"
+          severity: "{{ ntp_control.severity }}"
+
+          status: "{{ ntp_status }}"
+
+          expected_state: 
+            servers: "{{ expected_ntp_servers }}"
+
+          observed_state: 
+            servers: "{{ observed_ntp_servers }}"
+          
+          deviation:
+            missing_servers: "{{ missing_ntp_servers }}"
+            unexpected_servers: "{{ unexpected_ntp_servers }}"
+            summary: "{{ ntp_deviation | trim }}"
+
+          evidence:
+            - "{{ntp_raw.stdout[0].splitlines()}}"
+          remediation_hint: "{{ ntp_remediation_hint | trim }}"
+    - name: Display structured NTP compliance result
+      ansible.builtin.debug:
+        var: compliance_result
