@@ -1,5 +1,6 @@
 ---
 controls:
+
   - id: "LAB-001"
     name: "Hostname Configuration"
     category: "Device Identity"
@@ -7,4 +8,16 @@ controls:
     description: "Device hostname must match the approved hostname."
 
     expected:
-      hostname: "CSR-LAB-02"
+      hostname: "CSR-LAB-01"
+
+
+  - id: "LAB-002"
+    name: "NTP Server Configuration"
+    category: "Time Synchronization"
+    severity: "high"
+    description: "Device must use all approved NTP servers."
+
+    expected:
+      servers:
+        - "10.10.10.10"
+        - "10.10.10.11"
