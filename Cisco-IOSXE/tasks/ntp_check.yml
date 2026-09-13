@@ -59,8 +59,8 @@
       }}
 - name: Initialize NTP deviation message
   ansible.builtin.set_fact:
-  ntp_deviation_parts: []
-  ntp_remediation_parts: []
+    ntp_deviation_parts: []
+    ntp_remediation_parts: []
 
 - name: Record Missing NTP deviation
   ansible.builtin.set_fact:
