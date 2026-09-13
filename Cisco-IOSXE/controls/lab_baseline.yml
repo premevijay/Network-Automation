@@ -1,0 +1,10 @@
+---
+controls:
+  - id: "LAB-001"
+    name: "Hostname Configuration"
+    category: "Device Identity"
+    severity: "low"
+    description: "Device hostname must match the approved hostname."
+
+    expected:
+      hostname: "CSR-LAB-01"
