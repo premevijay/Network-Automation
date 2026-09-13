@@ -12,9 +12,8 @@
           - show ip interface brief
           - show running-config
           - show version
-        register: device_output
+      register: device_output
 
     - name: Display device output
       ansible.builtin.debug:
         var: device_output.stdout
-        
