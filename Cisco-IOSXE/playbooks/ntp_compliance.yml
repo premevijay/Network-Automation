@@ -26,12 +26,13 @@
       ansible.builtin.set_fact:
         observed_ntp_servers: >-
           {{
-            ntp_raw.stdout[0]
-            | regex_findall('(?m)^ntp server(?: vrf \\S+)?\\s+([0-9]{1,3}(?:\\.[0-9]{1,3}){3})\\b')
+            ntp_raw.stdout_lines[0]
+            | map('regex_replace', '^ntp server\\s+', '')
+            | map('regex_replace', '\\s+.*$', '')
             | unique
             | sort
             | list
-           }}
+          }}
     - name: Set expected NTP servers
       ansible.builtin.set_fact:
           expected_ntp_servers: "{{ ntp_control.expected.servers | sort | list }}"
