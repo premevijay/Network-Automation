@@ -63,7 +63,7 @@
       
       remediation_hint: >-
         {{
-          'None - Device is compliant
+          'None - Device is compliant'
           if hostname_status == 'PASS'
           else 
           'configure hostname '
