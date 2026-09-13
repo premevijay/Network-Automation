@@ -71,4 +71,4 @@
         }}
 - name: Add hostname result to compliance results
   ansible.builtin.set_fact:
-    compliance_results: "{{ compliance_results + [current_control_result] }}"
+    compliance_results: "{{ compliance_results + [compliance_result] }}"
