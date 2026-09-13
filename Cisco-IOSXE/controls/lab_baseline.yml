@@ -7,4 +7,4 @@ controls:
     description: "Device hostname must match the approved hostname."
 
     expected:
-      hostname: "CSR-LAB-01"
+      hostname: "CSR-LAB-02"
