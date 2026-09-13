@@ -14,11 +14,11 @@
     
     - name: Evaluate hostname compliance
       ansible.builtin.include_tasks:
-        file: "../tasks/hostname_compliance.yml"
+        file: "../tasks/hostname_check.yml"
 
     - name: Evaluate NTP compliance
       ansible.builtin.include_tasks:
-        file: "../tasks/ntp_compliance.yml"
+        file: "../tasks/ntp_check.yml"
     
     - name: Calculate compliance counters
       ansible.builtin.set.fact:
