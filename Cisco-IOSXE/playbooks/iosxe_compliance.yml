@@ -1,17 +1,25 @@
 ---
-
-- name: IOSXE-Compliance Check
+- name: IOS-XE Compliance Check
   hosts: cisco_iosxe
   gather_facts: false
 
   vars_files:
     - "../controls/lab_baseline.yml"
-  
+
   tasks:
+
+    # ---------------------------------------------------------
+    # Initialize
+    # ---------------------------------------------------------
+
     - name: Initialize compliance results list
       ansible.builtin.set_fact:
         compliance_results: []
-    
+
+    # ---------------------------------------------------------
+    # Execute compliance controls
+    # ---------------------------------------------------------
+
     - name: Evaluate hostname compliance
       ansible.builtin.include_tasks:
         file: "../tasks/hostname_check.yml"
@@ -19,7 +27,11 @@
     - name: Evaluate NTP compliance
       ansible.builtin.include_tasks:
         file: "../tasks/ntp_check.yml"
-    
+
+    # ---------------------------------------------------------
+    # Calculate summary counters
+    # ---------------------------------------------------------
+
     - name: Calculate compliance counters
       ansible.builtin.set_fact:
         passed_controls: >-
@@ -29,7 +41,7 @@
             | list
             | length
           }}
-        
+
         failed_controls: >-
           {{
             compliance_results
@@ -38,7 +50,7 @@
             | length
           }}
 
-    - name: calculate compliance percentage
+    - name: Calculate compliance percentage
       ansible.builtin.set_fact:
         compliance_percentage: >-
           {{
@@ -48,22 +60,50 @@
             ) | round(2)
             if ((passed_controls | int) + (failed_controls | int)) > 0
             else 0
-            }}
-    - name: Build Device compliance summary 
+          }}
+
+    # ---------------------------------------------------------
+    # Display each control separately
+    # ---------------------------------------------------------
+
+    - name: Display individual compliance results
+      ansible.builtin.debug:
+        msg:
+          control_id: "{{ item.control_id }}"
+          control_name: "{{ item.control_name }}"
+          category: "{{ item.category }}"
+          severity: "{{ item.severity }}"
+          status: "{{ item.status }}"
+          expected_state: "{{ item.expected_state }}"
+          observed_state: "{{ item.observed_state }}"
+          deviation: "{{ item.deviation }}"
+          evidence: "{{ item.evidence }}"
+          remediation_hint: "{{ item.remediation_hint }}"
+      loop: "{{ compliance_results }}"
+      loop_control:
+        label: "{{ item.control_id }} - {{ item.control_name }}"
+
+    # ---------------------------------------------------------
+    # Build device summary
+    # ---------------------------------------------------------
+
+    - name: Build device compliance summary
       ansible.builtin.set_fact:
         device_summary:
           device: "{{ inventory_hostname }}"
           vendor: "Cisco"
           platform: "IOS-XE"
-          
+
           controls_total: "{{ compliance_results | length }}"
-          passed: "{{passed_controls}}"
-          failed: "{{failed_controls}}"
+          passed: "{{ passed_controls }}"
+          failed: "{{ failed_controls }}"
 
-          compliance_percentage: "{{compliance_percentage}}"
+          compliance_percentage: "{{ compliance_percentage }}"
 
-          results: "{{compliance_results}}"
+    # ---------------------------------------------------------
+    # Display device summary
+    # ---------------------------------------------------------
 
-    - name: Display Device compliance summary
+    - name: Display device compliance summary
       ansible.builtin.debug:
         var: device_summary
