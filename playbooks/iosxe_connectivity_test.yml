@@ -1,0 +1,20 @@
+---
+
+- name: IOS-XE Connectivity Test
+  hosts: cisco_iosxe
+  gather_facts: false
+
+  tasks:
+    - name: Run basic IOS-XE connectivity test
+      cisco.ios.ios_command:
+        commands:
+          - show version
+          - show ip interface brief
+          - show running-config
+          - show version
+        register: device_output
+
+    - name: Display device output
+      ansible.builtin.debug:
+        var: device_output.stdout
+        
