@@ -50,7 +50,7 @@
             else 0
             }}
     - name: Build Device compliance summary 
-      ansible.builtin.set.fact:
+      ansible.builtin.set_fact:
         device_summary:
           device: "{{ inventory_hostname }}"
           vendor: "Cisco"
