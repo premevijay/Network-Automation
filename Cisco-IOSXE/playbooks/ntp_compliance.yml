@@ -59,8 +59,11 @@
           {{
             'PASS'
             if 
-            (missing_ntp_servers | length == 0) and (unexpected_ntp_servers | length == 0)
-            else 'FAIL'
+            (missing_ntp_servers | length == 0) 
+            and 
+            (unexpected_ntp_servers | length == 0)
+            else 
+            'FAIL'
           }}  
     - name: Build NTP remediation message
       ansible.builtin.set_fact:
