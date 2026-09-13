@@ -115,11 +115,30 @@
           deviation:
             missing_servers: "{{ missing_ntp_servers }}"
             unexpected_servers: "{{ unexpected_ntp_servers }}"
-            summary: "{{ ntp_deviation | trim }}"
+            summary: >-
+             {% if ntp_status == 'PASS' -%}
+             None
+             {%- else -%}
+             {%- if missing_ntp_servers | length > 0 -%}
+             Missing approved NTP Servers: {{ missing_ntp_servers | join(', ') }}. 
+             {%- endif -%}
+             {%- if unexpected_ntp_servers | length > 0 -%}
+             Unexpected NTP Servers: {{ unexpected_ntp_servers | join(', ') }}.
+             {%- endif -%}
+             {%- endif -%}
 
-          evidence:
-            - "{{ntp_raw.stdout[0].splitlines()}}"
-          remediation_hint: "{{ ntp_remediation_hint | trim }}"
+          evidence: "{{ntp_raw.stdout[0]}}"
+          remediation_hint: >-
+            {%- if ntp_status == 'PASS' - %}
+            None - device is compliant
+            {%- else -%}
+            {%- if missing_ntp_servers | length > 0 -%}
+            Configure missing approved NTP Servers: {{ missing_ntp_servers | join(', ') }}. 
+            {%- endif -%}
+            {%- if unexpected_ntp_servers | length > 0 -%}
+            Review and remove unexpected unauthorised NTP Server(s): {{ unexpected_ntp_servers | join(', ') }}
+            {%- endif -%}
+            {%- endif -%}
     - name: Display structured NTP compliance result
       ansible.builtin.debug:
         var: compliance_result
