@@ -116,7 +116,7 @@
             missing_servers: "{{ missing_ntp_servers }}"
             unexpected_servers: "{{ unexpected_ntp_servers }}"
             summary: >-
-             {% if ntp_status == 'PASS' -%}
+             {%- if ntp_status == 'PASS' -%}
              None
              {%- else -%}
              {%- if missing_ntp_servers | length > 0 -%}
@@ -129,7 +129,7 @@
 
           evidence: "{{ntp_raw.stdout[0]}}"
           remediation_hint: >-
-            {%- if ntp_status == 'PASS' - %}
+            {%- if ntp_status == 'PASS' -%}
             None - device is compliant
             {%- else -%}
             {%- if missing_ntp_servers | length > 0 -%}
